@@ -1,78 +1,152 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace Lab9.White;
 
-namespace Lab9.White
+public class Task2 : White
 {
-    public class Task2 : White
+    private int[,] _output;
+
+    public Task2(string text) : base(text) { }
+
+    public override void Review()
     {
-        private int[,] _output;
-        public int[,] Output => _output;
-        public Task2(string input) : base(input) // массив должен быть null
+        _output = syllablesMatrix(Input);
+    }
+
+    public int[,] Output => _output ?? new int[0, 2];
+
+    public static int[,] syllablesMatrix(string text)
+    {
+        var currentWord = new System.Text.StringBuilder();
+        bool wordStartedAfterDigit = false;
+        bool lastWasDigit = false;
+
+        int wordCount = 0;
+        foreach (char c in text)
         {
-            _output = new int[0, 0];
-        }
-        public override void Review()
-        {
-            string[] words = SplitToWords();
-            if (words == null || words.Length == 0)
+            if (char.IsLetter(c) || c == '-' || c == '\'')
             {
-                _output = new int[0, 0];
-                return;
+                if (currentWord.Length == 0)
+                    wordStartedAfterDigit = lastWasDigit;
+                currentWord.Append(c);
+                lastWasDigit = false;
             }
-            int[] syllableCounts = new int[101];
-            int maxSyllables = 0;
-            foreach (var word in words)
+            else
             {
-                if (!string.IsNullOrEmpty(word) && char.IsLetter(word[0]))
+                if (currentWord.Length > 0)
                 {
-                    int s = CountSyllables(word); // метод в White
-                    if (s < 101)
-                    {
-                        syllableCounts[s]++;
-                        if (s > maxSyllables) maxSyllables = s;
-                    }
+                    if (!wordStartedAfterDigit)
+                        wordCount++;
+                    currentWord.Clear();
                 }
-            }
-            int futrows = 0;
-            for (int i = 1; i <= maxSyllables; i++) // считаем, сколько строк будет в матрице(кол-во слогов > 0)
-            {
-                if (syllableCounts[i] > 0) futrows++;
-            }
-            _output = new int[futrows, 2];
-            int currentRow = 0;
-            for (int i = 1; i <= maxSyllables; i++)
-            {
-                if (syllableCounts[i] > 0)
-                {
-                    _output[currentRow, 0] = i;
-                    _output[currentRow, 1] = syllableCounts[i];
-                    currentRow++;
-                }
+                lastWasDigit = char.IsDigit(c);
             }
         }
-        public override string ToString()
+        if (currentWord.Length > 0 && !wordStartedAfterDigit)
+            wordCount++;
+
+        string[] words = new string[wordCount];
+        currentWord.Clear();
+        wordStartedAfterDigit = false;
+        lastWasDigit = false;
+        int wi = 0;
+
+        foreach (char c in text)
         {
-            var matrix = Output;
-            if (matrix == null) return string.Empty;
-
-            var result = new System.Text.StringBuilder();
-
-            for (int i = 0; i < matrix.GetLength(0); i++)
+            if (char.IsLetter(c) || c == '-' || c == '\'')
             {
-                result.Append(matrix[i, 0]);
-                result.Append(':'); // Посмотри, нужен ли пробел после двоеточия! Если 5/8, попробуй добавить пробел ': '
-                result.Append(matrix[i, 1]);
-
-                // Добавляем перенос только если это НЕ последняя строка
-                if (i < matrix.GetLength(0) - 1)
-                {
-                    result.AppendLine();
-                }
+                if (currentWord.Length == 0)
+                    wordStartedAfterDigit = lastWasDigit;
+                currentWord.Append(c);
+                lastWasDigit = false;
             }
-            return result.ToString();
+            else
+            {
+                if (currentWord.Length > 0)
+                {
+                    if (!wordStartedAfterDigit)
+                        words[wi++] = currentWord.ToString();
+                    currentWord.Clear();
+                }
+                lastWasDigit = char.IsDigit(c);
+            }
         }
+        if (currentWord.Length > 0 && !wordStartedAfterDigit)
+            words[wi] = currentWord.ToString();
+
+        char[] vowels = { 'а','е','ё','и','о','у','ы','э','ю','я',
+            'А','Е','Ё','И','О','У','Ы','Э','Ю','Я',
+            'a','e','i','o','u','y','A','E','I','O','U','Y' };
+
+        int[] syllablesPerWord = new int[words.Length];
+        int maxSyllables = 0;
+
+        for (int i = 0; i < words.Length; i++)
+        {
+            int syllables = 0;
+
+            foreach (char c in words[i])
+            {
+                if (Array.IndexOf(vowels, c) >= 0)
+                    syllables++;
+            }
+
+            if (syllables == 0)
+                syllables = 1;
+
+            syllablesPerWord[i] = syllables;
+
+            if (syllables > maxSyllables)
+                maxSyllables = syllables;
+        }
+
+        int[,] matrix = new int[maxSyllables, 2];
+
+        for (int i = 0; i < words.Length; i++)
+        {
+            int s = syllablesPerWord[i];
+            if (s > 0)
+            {
+                matrix[s - 1, 0] = s;
+                matrix[s - 1, 1]++;
+            }
+        }
+
+        int filledCount = 0;
+        for (int i = 0; i < matrix.GetLength(0); i++)
+        {
+            if (matrix[i, 1] > 0)
+                filledCount++;
+        }
+
+        int[,] result = new int[filledCount, 2];
+        int resultIndex = 0;
+        for (int i = 0; i < matrix.GetLength(0); i++)
+        {
+            if (matrix[i, 1] > 0)
+            {
+                result[resultIndex, 0] = matrix[i, 0];
+                result[resultIndex, 1] = matrix[i, 1];
+                resultIndex++;
+            }
+        }
+
+        return result;
+    }
+
+    public override string ToString()
+    {
+        var matrix = Output;
+        if (matrix == null) return string.Empty;
+
+        var result = new System.Text.StringBuilder();
+
+        for (int i = 0; i < matrix.GetLength(0); i++)
+        {
+            result.Append(matrix[i, 0]);
+            result.Append(':');
+            result.Append(matrix[i, 1]);
+            result.AppendLine();
+        }
+
+        return result.ToString().TrimEnd();
     }
 }
