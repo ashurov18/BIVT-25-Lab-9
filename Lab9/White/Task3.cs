@@ -1,47 +1,84 @@
-﻿namespace Lab9.White
+using System;
+using System.Text;
+
+namespace Lab9.White
 {
     public class Task3 : White
     {
-        private string[,] _codes; // поле для хранения таблицы
+        private string[,] _codes;
         private string _output;
-        public string Output => _output;
-        public string[,] Codes => _codes;
-        public Task3(string input, string[,] codes) : base(input)
+
+        public Task3(string text, string[,] codes) : base(text)
         {
-            _codes = codes; ;
+            _codes = codes;
         }
+
+        public string Output
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_output))
+                    return Input;
+                return _output;
+            }
+        }
+
         public override void Review()
         {
-            if (string.IsNullOrEmpty(_input) || _codes == null)
-            {
-                _output = _input;
-                return;
-            }
+            _output = ReplaceWordsWithCodes(Input);
+        }
 
-            // Добавляем пробелы по краям, чтобы Split и поиск работали корректно
-            // и создаем массив слов, чтобы не менять части внутри слов
-            string[] words = _input.Split(' ');
+        private string ReplaceWordsWithCodes(string text)
+        {
+            var result = new StringBuilder();
+            var currentWord = new StringBuilder();
 
-            for (int i = 0; i < words.Length; i++)
+            for (int i = 0; i < text.Length; i++)
             {
-                // Убираем знаки препинания только для проверки совпадения (опционально)
-                for (int j = 0; j < _codes.GetLength(0); j++)
+                char ch = text[i];
+
+                if (char.IsLetter(ch) || ch == '\'' || ch == '-')
                 {
-                    if (words[i] == _codes[j, 0])
+                    currentWord.Append(ch);
+                }
+                else
+                {
+                    if (currentWord.Length > 0)
                     {
-                        words[i] = _codes[j, 1];
-                        break; // Нашли замену — переходим к следующему слову
+                        string word = currentWord.ToString();
+                        string code = FindCode(word);
+                        result.Append(code);
+                        currentWord.Clear();
                     }
+                    result.Append(ch);
                 }
             }
 
-            //  Собираем слова обратно в строку
-            _output = string.Join(" ", words);
+            if (currentWord.Length > 0)
+            {
+                string word = currentWord.ToString();
+                string code = FindCode(word);
+                result.Append(code);
+            }
+
+            return result.ToString();
+        }
+
+        private string FindCode(string word)
+        {
+            for (int i = 0; i < _codes.GetLength(0); i++)
+            {
+                if (string.Equals(_codes[i, 0], word, StringComparison.Ordinal))
+                {
+                    return _codes[i, 1];
+                }
+            }
+            return word;
         }
 
         public override string ToString()
         {
-            return _output ?? " ";
+            return Output;
         }
     }
 }
